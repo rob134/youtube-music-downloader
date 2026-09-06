@@ -1,6 +1,7 @@
 const API = "http://127.0.0.1:8000";
 
 let songs = [];
+let searchSongsList = [];
 let downloadRunning = false;
 let pollingTimer = null;
 let importPollingTimer = null;
@@ -16,7 +17,6 @@ const downloadButton = document.getElementById("downloadButton");
 const selectFolderButton = document.getElementById("selectFolderButton");
 const resetFolderButton = document.getElementById("resetFolderButton");
 const songList = document.getElementById("songList");
-const searchResults = document.getElementById("searchResults");
 const queueCount = document.getElementById("queueCount");
 const loading = document.getElementById("loading");
 const progressPanel = document.getElementById("progressPanel");
@@ -42,7 +42,7 @@ selectFolderButton.addEventListener("click", selectFolder);
 resetFolderButton.addEventListener("click", resetFolder);
 
 loadSettings();
-renderSongs();
+renderQueue();
 
 async function loadSettings() {
     try {
@@ -59,9 +59,11 @@ async function searchSongs() {
     const quantity = Number(quantityInput.value);
     if (!query) return alert("Digite o nome da música, artista ou banda.");
     if (quantity < 1 || quantity > 50) return alert("A quantidade deve estar entre 1 e 50.");
+
     loading.classList.remove("hidden");
     searchButton.disabled = true;
-    status.textContent = `Pesquisando no YouTube: ${query}...`;
+    status.textContent = `🔎 Pesquisando no YouTube: ${query}...`;
+
     try {
         const response = await fetch(`${API}/api/search`, {
             method: "POST",
@@ -73,8 +75,14 @@ async function searchSongs() {
             status.textContent = "Erro: " + (data.error || "falha na pesquisa.");
             return;
         }
-        renderSearchResults(data.songs || [], query);
-        status.textContent = `${(data.songs || []).length} resultado(s) encontrado(s). Selecione os que deseja adicionar à fila.`;
+
+        searchSongsList = (data.songs || []).map((song, index) => ({
+            ...song,
+            id: `search-${Date.now()}-${index}`,
+            selected: false
+        }));
+        renderQueue();
+        status.textContent = `${searchSongsList.length} resultado(s) encontrado(s). Escolha as músicas para adicionar à fila.`;
     } catch (error) {
         status.textContent = "Não foi possível conectar ao servidor. Verifique se o FastAPI está rodando.";
         console.error(error);
@@ -84,61 +92,11 @@ async function searchSongs() {
     }
 }
 
-function renderSearchResults(results, query) {
-    searchResults.innerHTML = "";
-    searchResults.classList.remove("hidden");
-    if (!results.length) {
-        searchResults.innerHTML = `<p>Nenhum resultado encontrado para "${escapeHtml(query)}".</p>`;
-        return;
-    }
-
-    const header = document.createElement("div");
-    header.className = "search-results-header";
-    header.innerHTML = `<strong>Resultados para: ${escapeHtml(query)}</strong><button id="addSearchSelected">➕ Adicionar selecionadas</button>`;
-    searchResults.appendChild(header);
-
-    const resultSongs = results.map(song => ({ ...song, selected: false }));
-    resultSongs.forEach(song => {
-        const element = document.createElement("div");
-        element.className = "song search-result";
-
-        const check = document.createElement("input");
-        check.type = "checkbox";
-        check.className = "song-check";
-        check.checked = false;
-        check.addEventListener("change", () => { song.selected = check.checked; });
-
-        const content = document.createElement("div");
-        content.className = "song-content";
-        const title = document.createElement("div");
-        title.className = "song-title";
-        title.textContent = song.title;
-        content.appendChild(title);
-
-        element.append(check, content);
-        searchResults.appendChild(element);
-    });
-
-    document.getElementById("addSearchSelected").addEventListener("click", () => {
-        const selected = resultSongs.filter(song => song.selected);
-        if (!selected.length) return alert("Selecione pelo menos um resultado.");
-        const added = addSongs(selected);
-        renderSongs();
-        status.textContent = `${added} música(s) adicionada(s) à fila.`;
-        searchResults.classList.add("hidden");
-        searchResults.innerHTML = "";
-    });
-}
-
-function escapeHtml(value) {
-    return String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" }[char]));
-}
-
-async function importLinks() {
+function importLinks() {
     const text = linksInput.value.trim();
     if (!text) return alert("Cole pelo menos um link.");
     linksInput.value = "";
-    await startImport(text, null);
+    startImport(text, null);
 }
 
 async function importTxtFile() {
@@ -205,9 +163,8 @@ async function pollImport(jobId, fileName = null) {
                 const data = await response.json();
                 if (!data.success) throw new Error(data.error || "Importação não encontrada.");
 
-                const before = songs.length;
                 const added = addSongs(data.songs || []);
-                if (added > 0 || before !== songs.length) renderSongs();
+                if (added > 0) renderQueue();
 
                 const totalLinks = data.input_count || 0;
                 const processed = data.processed_inputs || 0;
@@ -215,11 +172,9 @@ async function pollImport(jobId, fileName = null) {
                 const source = fileName || data.file_name;
 
                 if (data.status !== "completed") {
-                    if (source) {
-                        status.textContent = `📄 ${source}: ${processed}/${totalLinks} link(s) processado(s) — ${loaded} música(s) na fila.`;
-                    } else {
-                        status.textContent = `⏳ Processando: ${processed}/${totalLinks} link(s) — ${loaded} música(s) na fila.`;
-                    }
+                    status.textContent = source
+                        ? `📄 ${source}: ${processed}/${totalLinks} link(s) processado(s) — ${loaded} música(s) na fila.`
+                        : `⏳ Processando: ${processed}/${totalLinks} link(s) — ${loaded} música(s) na fila.`;
                     importPollingTimer = setTimeout(poll, 300);
                     return;
                 }
@@ -258,65 +213,139 @@ function addSongs(newSongs) {
     let added = 0;
     for (const song of newSongs) {
         if (!song?.url || existing.has(song.url)) continue;
-        songs.push({ ...song, selected: true });
+        songs.push({
+            ...song,
+            id: song.id || `queue-${Date.now()}-${songs.length}-${added}`,
+            selected: true
+        });
         existing.add(song.url);
         added++;
     }
     return added;
 }
 
-function clearQueue() {
-    if (downloadRunning) return;
-    songs = [];
-    renderSongs();
-    status.textContent = "Fila limpa.";
+function addSearchSelected() {
+    const selected = searchSongsList.filter(song => song.selected);
+    if (!selected.length) return alert("Selecione pelo menos uma música.");
+    const added = addSongs(selected);
+    searchSongsList = searchSongsList.filter(song => !song.selected);
+    renderQueue();
+    status.textContent = `${added} música(s) adicionada(s) à fila.`;
 }
 
-function renderSongs() {
-    songList.innerHTML = "";
-    queueCount.textContent = `${songs.length} ${songs.length === 1 ? "música" : "músicas"} na fila`;
-    if (!songs.length) {
-        songList.innerHTML = "<p>Nenhuma música na fila.</p>";
-        return;
-    }
+function addAllSearchResults() {
+    if (!searchSongsList.length) return;
+    const added = addSongs(searchSongsList);
+    searchSongsList = [];
+    renderQueue();
+    status.textContent = `${added} música(s) adicionada(s) à fila.`;
+}
 
-    const fragment = document.createDocumentFragment();
-    songs.forEach((song, index) => {
-        const element = document.createElement("div");
-        element.className = "song";
-
-        const check = document.createElement("input");
-        check.type = "checkbox";
-        check.className = "song-check";
-        check.checked = song.selected !== false;
-        check.disabled = downloadRunning;
-        check.addEventListener("change", () => { song.selected = check.checked; });
-
-        const content = document.createElement("div");
-        content.className = "song-content";
-        const title = document.createElement("div");
-        title.className = "song-title";
-        title.textContent = `${index + 1}. ${song.title}`;
-        content.appendChild(title);
-
-        const remove = document.createElement("button");
-        remove.className = "remove";
-        remove.textContent = "✕";
-        remove.title = "Remover música";
-        remove.disabled = downloadRunning;
-        remove.addEventListener("click", () => removeSong(song.id));
-
-        element.append(check, content, remove);
-        fragment.appendChild(element);
-    });
-    songList.appendChild(fragment);
+function removeSearchSong(id) {
+    if (downloadRunning) return;
+    searchSongsList = searchSongsList.filter(song => song.id !== id);
+    renderQueue();
 }
 
 function removeSong(id) {
     if (downloadRunning) return;
     songs = songs.filter(song => song.id !== id);
-    renderSongs();
+    renderQueue();
     status.textContent = `${songs.length} músicas na fila.`;
+}
+
+function clearQueue() {
+    if (downloadRunning) return;
+    if (importPollingTimer) {
+        clearTimeout(importPollingTimer);
+        importPollingTimer = null;
+    }
+    songs = [];
+    searchSongsList = [];
+    const importedFile = document.getElementById("importedFile");
+    if (importedFile) importedFile.remove();
+    renderQueue();
+    status.textContent = "Fila limpa.";
+}
+
+function renderQueue() {
+    songList.innerHTML = "";
+    queueCount.textContent = `${songs.length} ${songs.length === 1 ? "música" : "músicas"} na fila`;
+
+    const fragment = document.createDocumentFragment();
+
+    if (searchSongsList.length) {
+        const searchHeader = document.createElement("div");
+        searchHeader.className = "search-results-header";
+        searchHeader.innerHTML = `
+            <strong>Resultados para: ${escapeHtml(artistInput.value.trim())}</strong>
+            <div class="search-actions">
+                <button type="button" id="addSearchSelected">➕ Adicionar selecionadas</button>
+                <button type="button" id="addSearchAll">➕ Adicionar todas</button>
+            </div>`;
+        fragment.appendChild(searchHeader);
+    }
+
+    searchSongsList.forEach(song => {
+        fragment.appendChild(createSongElement(song, false));
+    });
+
+    if (searchSongsList.length && songs.length) {
+        const divider = document.createElement("div");
+        divider.className = "queue-divider";
+        divider.textContent = "Fila de músicas";
+        fragment.appendChild(divider);
+    }
+
+    songs.forEach(song => fragment.appendChild(createSongElement(song, true)));
+
+    if (!searchSongsList.length && !songs.length) {
+        const empty = document.createElement("p");
+        empty.textContent = "Nenhuma música na fila.";
+        fragment.appendChild(empty);
+    }
+
+    songList.appendChild(fragment);
+
+    const addSelectedButton = document.getElementById("addSearchSelected");
+    const addAllButton = document.getElementById("addSearchAll");
+    if (addSelectedButton) addSelectedButton.addEventListener("click", addSearchSelected);
+    if (addAllButton) addAllButton.addEventListener("click", addAllSearchResults);
+}
+
+function createSongElement(song, inQueue) {
+    const element = document.createElement("div");
+    element.className = inQueue ? "song" : "song search-result";
+
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "song-check";
+    check.checked = song.selected !== false;
+    check.disabled = downloadRunning;
+    check.addEventListener("change", () => { song.selected = check.checked; });
+
+    const content = document.createElement("div");
+    content.className = "song-content";
+    const title = document.createElement("div");
+    title.className = "song-title";
+    title.textContent = inQueue ? `${songs.indexOf(song) + 1}. ${song.title}` : song.title;
+    content.appendChild(title);
+
+    const remove = document.createElement("button");
+    remove.className = "remove";
+    remove.textContent = "✕";
+    remove.title = "Remover música";
+    remove.disabled = downloadRunning;
+    remove.addEventListener("click", () => inQueue ? removeSong(song.id) : removeSearchSong(song.id));
+
+    element.append(check, content, remove);
+    return element;
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>\'"]/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;"
+    }[char]));
 }
 
 async function selectFolder() {
@@ -361,6 +390,7 @@ async function downloadSongs() {
     overallProgress.style.width = "0%";
     currentSong.textContent = "Iniciando...";
     status.textContent = "";
+    renderQueue();
 
     try {
         const response = await fetch(`${API}/api/download`, {
@@ -380,7 +410,7 @@ async function downloadSongs() {
     } finally {
         downloadRunning = false;
         setControlsDisabled(false);
-        renderSongs();
+        renderQueue();
     }
 }
 
@@ -399,10 +429,11 @@ async function pollDownload(jobId) {
                 currentSong.textContent = data.current_title
                     ? `${data.current_percent || 0}% — ${data.current_title}`
                     : (data.status === "completed" ? "Concluído." : "Processando...");
+
                 if (data.status === "completed") {
                     overallProgress.style.width = "100%";
                     progressSummary.textContent = `Download finalizado: ${completed}/${data.total} músicas.`;
-                    const success = data.results.filter(item => item.success).length;
+                    const success = (data.results || []).filter(item => item.success).length;
                     status.textContent = `Download finalizado: ${success}/${data.total} músicas com sucesso. Pasta: ${data.output_dir}`;
                     resolve();
                     return;
@@ -421,12 +452,11 @@ async function pollDownload(jobId) {
 function setControlsDisabled(disabled) {
     searchButton.disabled = disabled;
     importButton.disabled = disabled;
-    clearButton.disabled = disabled;
-    selectFolderButton.disabled = disabled;
-    resetFolderButton.disabled = disabled;
+    txtFile.disabled = disabled;
     artistInput.disabled = disabled;
     quantityInput.disabled = disabled;
     linksInput.disabled = disabled;
-    txtFile.disabled = disabled;
-    downloadButton.disabled = disabled;
+    clearButton.disabled = disabled;
+    selectFolderButton.disabled = disabled;
+    resetFolderButton.disabled = disabled;
 }
