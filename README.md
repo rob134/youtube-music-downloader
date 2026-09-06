@@ -374,7 +374,7 @@ A evolução V2 foi ampliada para transformar o downloader em uma aplicação we
 
 A fila aceita diferentes formas de entrada:
 
-- Pesquisa por artista/banda.
+- Pesquisa por música, artista ou banda.
 - Um link individual do YouTube.
 - Vários links, um por linha.
 - Arquivo `.txt` contendo URLs.
@@ -421,11 +421,34 @@ POST /api/import-file
 
 recebe o arquivo `.txt`, lê as URLs e encaminha o conteúdo para o mesmo mecanismo de importação utilizado pelos links colados na interface.
 
+A importação agora procura URLs em todo o conteúdo do TXT e **não possui limite artificial de 200 músicas**. Todas as URLs válidas encontradas são processadas. Se uma URL falhar, ela é registrada no retorno sem interromper as demais.
+
+O nome do arquivo carregado também é exibido na interface.
+
 ### 📑 Playlists
 
 URLs de playlists podem ser informadas diretamente. O backend utiliza o `yt-dlp` para extrair os itens da playlist e transformá-los em músicas individuais na fila.
 
-Isso permite revisar a playlist antes de iniciar o download, removendo ou desmarcando itens desnecessários.
+A extração não possui mais o limite artificial de 200 itens, permitindo carregar todos os itens que o `yt-dlp` conseguir obter.
+
+### 🔎 Busca no YouTube
+
+A interface também permite pesquisar diretamente no YouTube por:
+
+- Nome da música.
+- Artista.
+- Banda.
+- Combinação de música e artista.
+
+Exemplo:
+
+```text
+Linkin Park - Numb
+```
+
+Os resultados aparecem na interface com checkbox individual. O usuário pode selecionar uma ou várias opções e clicar em **Adicionar selecionadas**. Os resultados escolhidos entram na mesma fila utilizada pelos links, TXT e playlists.
+
+A quantidade de resultados pode ser configurada entre 1 e 50.
 
 ### 🔧 Dependências da V2
 
