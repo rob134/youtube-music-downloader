@@ -318,7 +318,7 @@ A partir da versão inicial em CLI, o projeto começou a evoluir para uma aplica
 
 A aplicação não depende mais de um caminho fixo como `E:\Musicas`.
 
-Os downloads são armazenados em:
+Os downloads são armazenados por padrão em:
 
 ```text
 C:\Users\<USUARIO>\Downloads\YouTube Music Downloader
@@ -355,3 +355,106 @@ A V2 foi testada com downloads reais de músicas, incluindo múltiplos arquivos,
 O próximo commit deve consolidar as alterações da V2 no código-fonte, incluindo backend, frontend, tratamento de downloads e a evolução da pasta de destino.
 
 Próximas melhorias planejadas incluem progresso individual dos downloads, tratamento de erros na interface, melhoria da seleção dos resultados e opção para o usuário escolher outra pasta de destino.
+
+---
+
+## 🚀 V2 fechada — fila, links, playlists e progresso
+
+A evolução V2 foi ampliada para transformar o downloader em uma aplicação web local completa para gerenciamento de uma fila de downloads.
+
+### 📁 Pasta de destino configurável
+
+- Pasta padrão: `Downloads/YouTube Music Downloader`.
+- Botão para abrir o seletor nativo de pastas do Windows.
+- Possibilidade de escolher qualquer pasta acessível pelo usuário.
+- Botão para restaurar a pasta padrão.
+- A pasta selecionada é exibida na interface e utilizada nos próximos downloads.
+
+### 🔗 Entrada de músicas
+
+A fila aceita diferentes formas de entrada:
+
+- Pesquisa por artista/banda.
+- Um link individual do YouTube.
+- Vários links, um por linha.
+- Arquivo `.txt` contendo URLs.
+- URL de playlist do YouTube.
+
+Os itens importados são normalizados e duplicados são eliminados antes de entrarem na fila.
+
+### 📋 Gerenciamento da fila
+
+- Cada música aparece na fila com checkbox de seleção.
+- O usuário pode desmarcar músicas que não deseja baixar.
+- O usuário pode remover itens individualmente.
+- A fila pode ser limpa antes do download.
+- Resultados de pesquisas e links importados podem ser combinados na mesma fila.
+
+### 📊 Progresso em tempo real
+
+O download deixou de ser uma operação que somente apresenta o resultado no final.
+
+Agora o backend cria um `job_id` para cada lote e o frontend consulta periodicamente seu estado através de:
+
+```text
+POST /api/download
+GET  /api/download/{job_id}
+```
+
+A interface apresenta:
+
+- Música atualmente sendo processada.
+- Percentual da música atual.
+- Quantidade de músicas concluídas.
+- Percentual geral do lote.
+- Resultado final com sucessos e falhas.
+
+O backend utiliza a saída de progresso do `yt-dlp` para atualizar o estado do job enquanto o download acontece.
+
+### 📄 Importação de TXT
+
+O endpoint:
+
+```text
+POST /api/import-file
+```
+
+recebe o arquivo `.txt`, lê as URLs e encaminha o conteúdo para o mesmo mecanismo de importação utilizado pelos links colados na interface.
+
+### 📑 Playlists
+
+URLs de playlists podem ser informadas diretamente. O backend utiliza o `yt-dlp` para extrair os itens da playlist e transformá-los em músicas individuais na fila.
+
+Isso permite revisar a playlist antes de iniciar o download, removendo ou desmarcando itens desnecessários.
+
+### 🔧 Dependências da V2
+
+Além de FastAPI, Uvicorn e `yt-dlp`, o projeto utiliza `python-multipart` para permitir upload de arquivos TXT através da API.
+
+### 🏁 Status da V2
+
+A V2 agora contempla o fluxo principal planejado:
+
+```text
+Pesquisa / Link / TXT / Playlist
+              ↓
+         Normalização
+              ↓
+       Remoção de duplicados
+              ↓
+          Fila de músicas
+              ↓
+      Seleção / remoção
+              ↓
+       Escolha da pasta
+              ↓
+       Início do download
+              ↓
+     Progresso em tempo real
+              ↓
+       Resultado por música
+              ↓
+        Resumo final
+```
+
+A próxima etapa natural do projeto passa a ser a evolução para uma V3, com recursos como histórico persistente, melhorias de UX, cancelamento de jobs, logs estruturados e possível extensão de navegador.
