@@ -10,7 +10,7 @@
 <div class="container">
     <header>
         <h1>🎵 YouTube Music Downloader</h1>
-        <p>Pesquise músicas, revise a fila e baixe somente o que quiser.</p>
+        <p>Pesquise músicas, adicione links ou playlists, revise a fila e acompanhe o download em tempo real.</p>
     </header>
 
     <section class="search-box">
@@ -25,9 +25,38 @@
         <button id="searchButton">🔎 Buscar músicas</button>
     </section>
 
+    <section class="import-box">
+        <div class="section-title">
+            <h2>🔗 Links e playlists</h2>
+            <span>Um ou vários links, um por linha</span>
+        </div>
+        <textarea id="linksInput" rows="4" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/playlist?list=..."></textarea>
+        <div class="import-actions">
+            <button id="importButton">➕ Adicionar links</button>
+            <label class="file-button">
+                📄 Adicionar TXT
+                <input id="txtFile" type="file" accept=".txt,text/plain">
+            </label>
+        </div>
+    </section>
+
+    <section class="folder-box">
+        <div>
+            <h2>📁 Pasta de download</h2>
+            <div id="folderPath">Carregando...</div>
+        </div>
+        <div class="folder-actions">
+            <button id="selectFolderButton">Escolher pasta</button>
+            <button id="resetFolderButton" class="secondary">Pasta padrão</button>
+        </div>
+    </section>
+
     <section class="results">
         <div class="results-header">
-            <h2>Músicas encontradas</h2>
+            <div>
+                <h2>Fila de músicas</h2>
+                <span id="queueCount">0 músicas</span>
+            </div>
             <button id="clearButton" class="danger">🗑 Limpar lista</button>
         </div>
         <div id="loading" class="hidden">🔎 Procurando músicas...</div>
@@ -36,6 +65,11 @@
 
     <section class="download-section">
         <button id="downloadButton" class="download">⬇️ Baixar selecionadas</button>
+        <div id="progressPanel" class="progress-panel hidden">
+            <div class="progress-summary" id="progressSummary"></div>
+            <div class="progress-bar"><div id="overallProgress" class="progress-fill"></div></div>
+            <div id="currentSong" class="current-song"></div>
+        </div>
         <div id="status"></div>
     </section>
 </div>
