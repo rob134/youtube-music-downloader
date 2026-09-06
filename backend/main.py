@@ -11,7 +11,7 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 
-app = FastAPI(title="YouTube Music Downloader", version="2.2.0")
+app = FastAPI(title="YouTube Music Downloader", version="2.2.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -143,7 +143,8 @@ def search(request: SearchRequest):
 
 @app.post("/api/import")
 def import_links(request: ImportRequest):
-    raw_urls = re.findall(r"https?://[^\s<>"]+", request.text, flags=re.IGNORECASE)
+    # Use single quotes here so the double quote inside the character class is valid Python.
+    raw_urls = re.findall(r'https?://[^\s<>"]+', request.text, flags=re.IGNORECASE)
     songs = []
     seen = set()
     errors = []
