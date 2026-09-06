@@ -11,7 +11,7 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 
-app = FastAPI(title="YouTube Music Downloader", version="2.1.1")
+app = FastAPI(title="YouTube Music Downloader", version="2.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,7 +29,7 @@ jobs = {}
 jobs_lock = Lock()
 
 class SearchRequest(BaseModel):
-    artist: str = Field(min_length=1, max_length=100)
+    query: str = Field(min_length=1, max_length=200)
     quantity: int = Field(default=10, ge=1, le=50)
 
 class DownloadItem(BaseModel):
@@ -38,10 +38,10 @@ class DownloadItem(BaseModel):
     url: str
 
 class DownloadRequest(BaseModel):
-    songs: list[DownloadItem] = Field(min_length=1, max_length=200)
+    songs: list[DownloadItem] = Field(min_length=1)
 
 class ImportRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=100000)
+    text: str = Field(min_length=1, max_length=1000000)
 
 def clean_title(title: str) -> str:
     return re.sub(r"\s+", " ", title or "").strip()
@@ -84,8 +84,6 @@ def extract_url_entries(url):
         webpage_url = entry.get("webpage_url") or (f"https://www.youtube.com/watch?v={video_id}" if video_id else None)
         if title and webpage_url:
             add_song(songs, seen, title, webpage_url, video_id)
-        if len(songs) >= 200:
-            break
     return songs
 
 @app.get("/")
@@ -123,7 +121,7 @@ def reset_folder():
 
 @app.post("/api/search")
 def search(request: SearchRequest):
-    query = f"ytsearch{request.quantity * 3}:{request.artist} official music"
+    query = f"ytsearch{request.quantity}:{request.query}"
     command = [sys.executable, "-m", "yt_dlp", "--flat-playlist", "--dump-single-json", "--skip-download", query]
     result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
@@ -141,9 +139,7 @@ def search(request: SearchRequest):
             continue
         seen.add(video_id)
         songs.append({"id": str(uuid.uuid4()), "title": title, "url": f"https://www.youtube.com/watch?v={video_id}"})
-        if len(songs) >= request.quantity:
-            break
-    return {"success": True, "artist": request.artist, "songs": songs}
+    return {"success": True, "query": request.query, "songs": songs}
 
 @app.post("/api/import")
 def import_links(request: ImportRequest):
@@ -157,12 +153,8 @@ def import_links(request: ImportRequest):
             extracted = extract_url_entries(url)
             for song in extracted:
                 add_song(songs, seen, song["title"], song["url"], song["url"])
-                if len(songs) >= 200:
-                    break
         except Exception as exc:
             errors.append({"url": url, "error": str(exc)})
-        if len(songs) >= 200:
-            break
     return {"success": True, "songs": songs, "errors": errors, "count": len(songs), "input_count": len(raw_urls)}
 
 @app.post("/api/import-file")
