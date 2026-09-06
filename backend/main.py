@@ -1,7 +1,10 @@
+from unittest import result
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from pathlib import Path
+import sys
 import subprocess
 import json
 import uuid
@@ -17,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-OUTPUT_DIR = Path(r"E:\Musicas")
+OUTPUT_DIR = Path.home() / "Downloads" / "YouTube Music Downloader"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -64,7 +67,7 @@ def search(request: SearchRequest):
     query = f"ytsearch{request.quantity * 3}:{request.artist} official music"
 
     command = [
-        "python", "-m", "yt_dlp",
+        sys.executable, "-m", "yt_dlp",
         "--flat-playlist",
         "--dump-single-json",
         "--skip-download",
@@ -118,9 +121,15 @@ def search(request: SearchRequest):
 def download(request: DownloadRequest):
     results = []
 
+    print("SONGS RECEBIDAS:", request.songs)
+
     for song in request.songs:
+
+        print("PROCESSANDO:", song.title)
+
+
         command = [
-            "python", "-m", "yt_dlp",
+            sys.executable, "-m", "yt_dlp",
             "--ignore-errors",
             "--retries", "5",
             "--fragment-retries", "5",
@@ -134,7 +143,19 @@ def download(request: DownloadRequest):
             song.url,
         ]
 
-        result = subprocess.run(command)
+        print("PYTHON USADO:", sys.executable)
+
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+
+        print("RETORNO:", result.returncode)
+        print("ERRO YT-DLP:", result.stderr)
+
         results.append({
             "id": song.id,
             "title": song.title,
