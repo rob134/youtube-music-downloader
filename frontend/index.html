@@ -10,10 +10,10 @@
 <div class="container">
     <header>
         <h1>🎵 YouTube Music Downloader</h1>
-        <p>Pesquise músicas, revise a fila e baixe somente o que quiser.</p>
+        <p>Pesquise artistas, importe links ou playlists, escolha a pasta e acompanhe o download.</p>
     </header>
 
-    <section class="search-box">
+    <section class="card search-box">
         <div class="field">
             <label for="artist">Artista / Banda</label>
             <input id="artist" type="text" placeholder="Ex: Linkin Park">
@@ -25,17 +25,54 @@
         <button id="searchButton">🔎 Buscar músicas</button>
     </section>
 
-    <section class="results">
+    <section class="card import-box">
+        <div class="section-title">
+            <div>
+                <h2>🔗 Links e playlists</h2>
+                <p>Cole uma ou várias URLs do YouTube. Uma playlist também pode ser usada.</p>
+            </div>
+            <label class="file-button">
+                📄 Importar TXT
+                <input id="txtFile" type="file" accept=".txt,text/plain" hidden>
+            </label>
+        </div>
+
+        <textarea id="linksInput" rows="5" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...&#10;https://www.youtube.com/playlist?list=..."></textarea>
+
+        <div class="import-actions">
+            <button id="importButton" class="secondary">➕ Adicionar links / playlist</button>
+            <button id="clearInputButton" class="ghost">Limpar campo</button>
+        </div>
+    </section>
+
+    <section class="card destination-box">
+        <div>
+            <h2>📁 Pasta de destino</h2>
+            <p id="destinationPath">Carregando...</p>
+        </div>
+        <button id="directoryButton" class="secondary">📂 Escolher pasta</button>
+    </section>
+
+    <section class="card results">
         <div class="results-header">
-            <h2>Músicas encontradas</h2>
+            <h2>🎶 Fila de músicas <span id="songCount">0</span></h2>
             <button id="clearButton" class="danger">🗑 Limpar lista</button>
         </div>
         <div id="loading" class="hidden">🔎 Procurando músicas...</div>
         <div id="songList"></div>
     </section>
 
-    <section class="download-section">
+    <section class="card download-section">
         <button id="downloadButton" class="download">⬇️ Baixar selecionadas</button>
+        <div id="downloadProgress" class="progress-panel hidden">
+            <div class="progress-summary">
+                <strong id="progressTitle">Download</strong>
+                <span id="progressCount">0/0</span>
+            </div>
+            <div class="progress-bar"><div id="progressFill"></div></div>
+            <div id="progressCurrent">Aguardando...</div>
+            <div id="progressList"></div>
+        </div>
         <div id="status"></div>
     </section>
 </div>
