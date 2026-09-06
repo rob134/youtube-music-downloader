@@ -1,26 +1,43 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; background: #111827; color: #f9fafb; }
-.container { width: 90%; max-width: 1000px; margin: 50px auto; }
+.container { width: 90%; max-width: 1000px; margin: 40px auto; }
 header { margin-bottom: 30px; }
 header h1 { margin-bottom: 8px; }
-header p { color: #9ca3af; }
-.search-box { display: flex; gap: 15px; align-items: end; background: #1f2937; padding: 20px; border-radius: 12px; }
+header p { color: #9ca3af; line-height: 1.5; }
+.search-box, .import-box, .folder-box, .results { background: #1f2937; padding: 20px; border-radius: 12px; margin-top: 20px; }
+.search-box { display: flex; gap: 15px; align-items: end; }
 .field { flex: 1; }
 .quantity { max-width: 150px; }
 label { display: block; margin-bottom: 8px; color: #d1d5db; }
-input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #111827; color: white; font-size: 16px; }
+input, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #111827; color: white; font-size: 16px; }
+textarea { resize: vertical; margin-top: 12px; line-height: 1.5; }
 button { border: none; border-radius: 8px; padding: 12px 18px; cursor: pointer; font-size: 15px; }
 button:disabled { opacity: .6; cursor: wait; }
-#searchButton { background: #2563eb; color: white; }
-.results { margin-top: 30px; background: #1f2937; padding: 20px; border-radius: 12px; }
-.results-header { display: flex; justify-content: space-between; align-items: center; }
-.results-header h2 { margin: 0; }
+#searchButton, #importButton { background: #2563eb; color: white; }
+.section-title, .results-header, .folder-box { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.section-title h2, .folder-box h2, .results-header h2 { margin: 0; }
+.section-title span, #queueCount { color: #9ca3af; font-size: 14px; }
+.import-actions, .folder-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.file-button { display: inline-flex; align-items: center; margin: 0; padding: 12px 18px; border-radius: 8px; background: #374151; color: white; cursor: pointer; }
+.file-button input { display: none; }
+.folder-box > div:first-child { min-width: 0; flex: 1; }
+#folderPath { color: #9ca3af; margin-top: 8px; word-break: break-all; font-family: Consolas, monospace; font-size: 13px; }
+.secondary { background: #374151; color: white; }
+.results-header > div { display: flex; align-items: baseline; gap: 12px; }
 .danger { background: #7f1d1d; color: white; }
+#loading { margin-top: 18px; color: #93c5fd; }
 .song { display: flex; align-items: center; gap: 12px; padding: 14px; margin-top: 10px; background: #111827; border-radius: 8px; }
-.song-title { flex: 1; }
+.song-check { width: 18px; height: 18px; flex: 0 0 auto; }
+.song-content { flex: 1; min-width: 0; }
+.song-title { overflow-wrap: anywhere; line-height: 1.4; }
 .remove { background: #374151; color: white; font-weight: bold; }
 .download-section { margin-top: 20px; }
 .download { width: 100%; background: #059669; color: white; font-size: 17px; }
-#status { margin-top: 15px; color: #9ca3af; }
+#status { margin-top: 15px; color: #d1d5db; line-height: 1.5; word-break: break-word; }
+.progress-panel { margin-top: 18px; padding: 18px; background: #1f2937; border-radius: 12px; }
+.progress-summary { margin-bottom: 10px; font-weight: bold; }
+.progress-bar { width: 100%; height: 18px; overflow: hidden; background: #111827; border-radius: 999px; }
+.progress-fill { width: 0%; height: 100%; background: #10b981; transition: width .25s ease; }
+.current-song { margin-top: 10px; color: #9ca3af; overflow-wrap: anywhere; }
 .hidden { display: none; }
-@media (max-width: 700px) { .search-box { flex-direction: column; align-items: stretch; } .quantity { max-width: none; } }
+@media (max-width: 700px) { .search-box { flex-direction: column; align-items: stretch; } .quantity { max-width: none; } .folder-box, .results-header { align-items: stretch; flex-direction: column; } .results-header > div { justify-content: space-between; } }
