@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Music Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🎵 YouTube Music Downloader</h1>
+        <p>Pesquise músicas, revise a fila e baixe somente o que quiser.</p>
+    </header>
+
+    <section class="search-box">
+        <div class="field">
+            <label for="artist">Artista / Banda</label>
+            <input id="artist" type="text" placeholder="Ex: Linkin Park">
+        </div>
+        <div class="field quantity">
+            <label for="quantity">Quantidade</label>
+            <input id="quantity" type="number" min="1" max="50" value="10">
+        </div>
+        <button id="searchButton">🔎 Buscar músicas</button>
+    </section>
+
+    <section class="results">
+        <div class="results-header">
+            <h2>Músicas encontradas</h2>
+            <button id="clearButton" class="danger">🗑 Limpar lista</button>
+        </div>
+        <div id="loading" class="hidden">🔎 Procurando músicas...</div>
+        <div id="songList"></div>
+    </section>
+
+    <section class="download-section">
+        <button id="downloadButton" class="download">⬇️ Baixar selecionadas</button>
+        <div id="status"></div>
+    </section>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
