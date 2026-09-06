@@ -1,287 +1,419 @@
-# YouTube Music Downloader
+# 🎵 YouTube Music Downloader
 
-Script em Python para baixar áudio de vídeos do YouTube e convertê-lo automaticamente para MP3 usando `yt-dlp` e FFmpeg.
+Aplicação local para pesquisar músicas no YouTube, selecionar resultados e baixar o áudio em MP3 utilizando `yt-dlp` e FFmpeg.
 
-> **Objetivo:** automatizar o download de uma lista de URLs do YouTube para uma pasta local no Windows, mantendo o projeto simples e fácil de evoluir.
+O projeto começou como um script Python de linha de comando e evoluiu para uma aplicação web local com frontend em HTML/CSS/JavaScript e backend em FastAPI.
 
-## ⚠️ Uso responsável
+> ⚠️ **Uso responsável:** utilize a aplicação somente para conteúdos que você tenha autorização para baixar ou para os quais o download seja permitido pelos termos aplicáveis. O projeto não hospeda nem distribui arquivos de música.
 
-Use este projeto somente para conteúdos que você tem autorização para baixar ou para os quais o download seja permitido pelos termos aplicáveis. O projeto não hospeda, distribui ou inclui arquivos de música.
+---
 
-## ✨ Funcionalidades
+## 🚀 Evolução do projeto
 
-- Leitura de URLs a partir de um arquivo `links.txt`.
-- Remoção automática de URLs duplicadas.
-- Ignora linhas vazias e comentários iniciados com `#`.
-- Download utilizando `yt-dlp`.
-- Extração automática do áudio.
-- Conversão para MP3 usando FFmpeg.
-- Melhor qualidade de áudio disponível (`--audio-quality 0`).
-- Inclusão de metadados no arquivo de áudio.
-- Tentativas automáticas em caso de falha.
-- Suporte à continuação de downloads interrompidos.
-- Evita sobrescrever arquivos já existentes.
-- Continua processando a lista mesmo quando uma URL apresenta erro.
-- Gera `erros.txt` com as URLs que falharam.
-- Exibe um resumo final com quantidade de sucessos e erros.
+### V1 — Script Python
 
-## 🧰 Tecnologias
+A primeira versão automatizou o download de uma lista de URLs do YouTube.
+
+Características:
+
+- leitura de URLs a partir de `links.txt`;
+- remoção de URLs duplicadas;
+- suporte a comentários e linhas vazias;
+- download com `yt-dlp`;
+- extração e conversão para MP3 com FFmpeg;
+- retries e continuação de downloads;
+- prevenção de sobrescrita de arquivos;
+- registro das URLs que falharam em `erros.txt`;
+- resumo final de sucessos e erros.
+
+Arquivo principal:
+
+```text
+baixar_musicas.py
+```
+
+Fluxo da V1:
+
+```text
+links.txt
+   ↓
+Python
+   ↓
+yt-dlp
+   ↓
+FFmpeg
+   ↓
+MP3
+```
+
+### V2 — Aplicação Web
+
+A segunda versão substituiu o fluxo baseado exclusivamente em URLs por uma interface web local.
+
+O usuário informa o artista/banda e a quantidade desejada. O backend pesquisa no YouTube, apresenta os resultados e permite iniciar o download das músicas selecionadas.
+
+Fluxo atual:
+
+```text
+Usuário
+   ↓
+Frontend
+   ↓ HTTP/REST
+FastAPI
+   ↓
+yt-dlp / pesquisa
+   ↓
+Lista de músicas
+   ↓
+Usuário seleciona
+   ↓
+FastAPI
+   ↓
+yt-dlp + FFmpeg
+   ↓
+Downloads/YouTube Music Downloader
+```
+
+---
+
+## 🏗️ Arquitetura atual
+
+```text
+┌──────────────────────────┐
+│        Browser           │
+│  HTML + CSS + JavaScript │
+└────────────┬─────────────┘
+             │ HTTP
+             ▼
+┌──────────────────────────┐
+│        FastAPI            │
+│                           │
+│  /api/health              │
+│  /api/search              │
+│  /api/download            │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│         yt-dlp            │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│         FFmpeg            │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│ Downloads do usuário      │
+│ YouTube Music Downloader  │
+└──────────────────────────┘
+```
+
+---
+
+## 📁 Estrutura atual
+
+```text
+youtube-music-downloader/
+│
+├── backend/
+│   └── main.py
+│
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+│
+├── baixar_musicas.py
+├── requirements.txt
+├── README.md
+└── .gitignore
+```
+
+A V1 permanece no projeto como referência da evolução. A V2 utiliza o diretório `backend/` e o diretório `frontend/`.
+
+---
+
+## 🔎 Pesquisa de músicas
+
+A interface permite informar:
+
+- artista ou banda;
+- quantidade de resultados, de 1 a 50.
+
+Exemplo:
+
+```text
+Artista: Linkin Park
+Quantidade: 10
+```
+
+O backend utiliza o `yt-dlp` para realizar a pesquisa e retorna os resultados para o frontend.
+
+Cada resultado contém um identificador, título e URL do vídeo.
+
+Endpoint:
+
+```text
+POST /api/search
+```
+
+Exemplo de requisição:
+
+```json
+{
+  "artist": "Linkin Park",
+  "quantity": 5
+}
+```
+
+---
+
+## ⬇️ Download
+
+Depois da pesquisa, o usuário pode remover músicas da lista e iniciar o download das restantes.
+
+Endpoint:
+
+```text
+POST /api/download
+```
+
+O backend executa o fluxo:
+
+```text
+yt-dlp
+   ↓
+download do áudio
+   ↓
+FFmpeg
+   ↓
+MP3
+```
+
+### Pasta de destino
+
+Os arquivos são salvos automaticamente na pasta Downloads do usuário:
+
+```text
+Downloads/YouTube Music Downloader
+```
+
+No Windows:
+
+```text
+C:\Users\<USUARIO>\Downloads\YouTube Music Downloader
+```
+
+A pasta é criada automaticamente quando necessário. Dessa forma, o projeto não depende de um caminho fixo como `E:\Musicas`.
+
+---
+
+## 🧪 Testes realizados
+
+Durante o desenvolvimento da V2 foram validados:
+
+- inicialização do FastAPI com Uvicorn;
+- endpoint `/api/health`;
+- documentação Swagger em `/docs`;
+- pesquisa de músicas com `/api/search`;
+- execução do `yt-dlp` utilizando o Python do ambiente virtual;
+- download de áudio;
+- conversão para MP3 com FFmpeg;
+- criação automática da pasta de Downloads;
+- download de múltiplas músicas;
+- comunicação entre frontend e backend.
+
+Exemplo de health check:
+
+```text
+GET http://127.0.0.1:8000/api/health
+```
+
+Resposta:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+---
+
+## 🛠️ Tecnologias
 
 - Python 3
+- FastAPI
+- Uvicorn
 - yt-dlp
 - FFmpeg
-- PowerShell / Windows
+- HTML5
+- CSS3
+- JavaScript
+- REST API
+- Git
+- GitHub
+
+---
 
 ## 📋 Pré-requisitos
 
-### 1. Python
+### Python
 
-Instale o Python 3 no Windows e confirme no PowerShell:
+Verifique a instalação:
 
 ```powershell
 python --version
 ```
 
-### 2. yt-dlp
+### Ambiente virtual
 
-Instale o `yt-dlp`:
-
-```powershell
-python -m pip install -U yt-dlp
-```
-
-Confirme:
+Crie um ambiente virtual:
 
 ```powershell
-python -m yt_dlp --version
+python -m venv .venv
 ```
 
-### 3. FFmpeg
+Ative no Windows:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### Dependências Python
+
+Instale:
+
+```powershell
+pip install -r requirements.txt
+```
+
+As principais dependências são:
+
+```text
+fastapi
+uvicorn[standard]
+yt-dlp
+```
+
+### FFmpeg
 
 O FFmpeg é necessário para a conversão do áudio para MP3.
 
-Confirme se está instalado:
+Verifique:
 
 ```powershell
 ffmpeg -version
 ```
 
-No Windows, o FFmpeg pode ser instalado por um gerenciador de pacotes como o `winget`, desde que o pacote desejado esteja disponível no ambiente.
+---
 
-## 📁 Estrutura esperada
+## ▶️ Executando a V2
 
-O script utiliza atualmente a seguinte estrutura no computador:
-
-```text
-E:\Musicas\
-├── baixar_musicas.py
-├── links.txt
-├── musica1.mp3
-├── musica2.mp3
-└── erros.txt          # criado somente se houver falhas
-```
-
-**Importante:** os arquivos MP3, `links.txt` e `erros.txt` são arquivos locais e não fazem parte deste repositório.
-
-## 🔗 Criando o `links.txt`
-
-Crie o arquivo:
-
-```text
-E:\Musicas\links.txt
-```
-
-Coloque uma URL por linha:
-
-```text
-https://www.youtube.com/watch?v=EXEMPLO1
-https://www.youtube.com/watch?v=EXEMPLO2
-https://www.youtube.com/watch?v=EXEMPLO3
-```
-
-Também é possível utilizar comentários:
-
-```text
-# Minha playlist
-https://www.youtube.com/watch?v=EXEMPLO1
-https://www.youtube.com/watch?v=EXEMPLO2
-```
-
-URLs repetidas são automaticamente eliminadas pelo script.
-
-## ▶️ Como executar
-
-Abra o PowerShell e execute:
+Com o ambiente virtual ativado, a partir da raiz do projeto:
 
 ```powershell
-cd E:\Musicas
-python baixar_musicas.py
+python -m uvicorn backend.main:app --reload
 ```
 
-O programa irá:
-
-1. Verificar se `links.txt` existe.
-2. Ler as URLs.
-3. Remover duplicadas e linhas inválidas.
-4. Processar cada URL individualmente.
-5. Baixar o melhor áudio disponível.
-6. Converter o áudio para MP3.
-7. Adicionar metadados.
-8. Continuar para a próxima URL em caso de falha.
-9. Criar `erros.txt` caso existam URLs que não puderam ser processadas.
-10. Mostrar um resumo no final.
-
-## 🖥️ Exemplo de saída
+Backend:
 
 ```text
-============================================================
-      DOWNLOAD DE MÚSICAS - YT-DLP
-============================================================
-URLs encontradas: 10
-Destino: E:\Musicas
-============================================================
-
-[1/10]
-URL: https://www.youtube.com/watch?v=EXEMPLO
-...
-OK
-
-============================================================
-FINALIZADO
-============================================================
-Total de URLs : 10
-Sucesso       : 9
-Erros         : 1
-Destino       : E:\Musicas
-URLs com erro : E:\Musicas\erros.txt
-============================================================
+http://127.0.0.1:8000
 ```
 
-## 🔄 Downloads interrompidos
-
-O script utiliza opções para tentar continuar downloads incompletos e evitar baixar novamente arquivos que já existem.
-
-Isso é especialmente útil quando uma lista possui muitas URLs ou quando a conexão apresenta instabilidade.
-
-## ❌ Tratamento de erros
-
-Quando uma URL não consegue ser processada, o programa registra a URL em memória e continua para a próxima.
-
-Ao final, se houver falhas, é criado:
+Swagger:
 
 ```text
-E:\Musicas\erros.txt
+http://127.0.0.1:8000/docs
 ```
 
-Exemplo:
+Frontend local:
 
 ```text
-https://www.youtube.com/watch?v=URL_COM_ERRO_1
-https://www.youtube.com/watch?v=URL_COM_ERRO_2
+file:///C:/Users/<USUARIO>/Documents/youtube-music-downloader/frontend/index.html
 ```
 
-Isso permite executar novamente apenas as URLs problemáticas.
+> O caminho do frontend varia conforme a pasta onde o projeto foi clonado.
 
-## ⚙️ Configuração
+---
 
-As principais configurações ficam no início de `baixar_musicas.py`:
+## 🖥️ Como utilizar
 
-```python
-LINKS_FILE = Path(r"E:\Musicas\links.txt")
-OUTPUT_DIR = Path(r"E:\Musicas")
+1. Inicie o backend com Uvicorn.
+2. Abra `frontend/index.html` no navegador.
+3. Informe o artista ou banda.
+4. Escolha a quantidade de músicas.
+5. Clique em **Buscar músicas**.
+6. Remova da lista as músicas que não deseja baixar.
+7. Clique em **Baixar selecionadas**.
+8. Os MP3 serão salvos em `Downloads/YouTube Music Downloader`.
+
+---
+
+## 📝 Logs do backend
+
+A V2 mantém logs no backend para facilitar diagnóstico durante o desenvolvimento.
+
+Exemplos:
+
+```text
+SONGS RECEBIDAS: [...]
+PROCESSANDO: In The End
+PYTHON USADO: C:\...\.venv\Scripts\python.exe
+RETORNO: 0
+ERRO YT-DLP:
 ```
 
-Para usar outra pasta, altere esses caminhos.
+Esses logs ajudam a identificar problemas de ambiente, execução do `yt-dlp`, conversão e downloads individuais.
 
-Por exemplo:
+---
 
-```python
-LINKS_FILE = Path(r"C:\Users\Robson\Music\links.txt")
-OUTPUT_DIR = Path(r"C:\Users\Robson\Music")
-```
+## 🔐 Privacidade
 
-## 🧪 Teste rápido
+O processamento é local. Os arquivos baixados são armazenados no computador do usuário e o repositório não contém músicas, arquivos de áudio, credenciais ou tokens de acesso.
 
-Antes de executar uma lista grande, é recomendado testar uma única URL diretamente:
+---
 
-```powershell
-cd E:\Musicas
-python -m yt_dlp -x --audio-format mp3 --audio-quality 0 "https://www.youtube.com/watch?v=EXEMPLO"
-```
+## 📌 Roadmap
 
-Se o comando funcionar, o ambiente `yt-dlp + FFmpeg` está preparado para o script.
+### V1 — CLI
 
-## 🚀 Roadmap
-
-Este projeto pode evoluir além do script de linha de comando.
-
-### Versão atual — CLI
-
-- [x] Leitura de URLs
-- [x] Download automático
+- [x] Download através de URLs
 - [x] Conversão para MP3
 - [x] Metadados
 - [x] Retry
 - [x] Continuação de downloads
 - [x] Registro de erros
 
-### Próxima evolução — API Python
+### V2 — Web App
 
-- [ ] Criar uma API local com FastAPI.
-- [ ] Endpoint para receber uma URL.
-- [ ] Endpoint para iniciar downloads.
-- [ ] Status do download.
-- [ ] Histórico de downloads.
-- [ ] Validação de URLs.
+- [x] Backend FastAPI
+- [x] Frontend HTML/CSS/JavaScript
+- [x] Pesquisa por artista/banda
+- [x] Seleção e remoção de músicas
+- [x] Download em lote
+- [x] Conversão para MP3
+- [x] Pasta Downloads automática
+- [x] Logs no backend
 
-### Evolução futura — Extensão Chrome
+### Próximas evoluções
 
-A ideia é transformar o projeto em uma extensão do Chrome capaz de enviar a URL da página atual para uma aplicação Python local.
+- [ ] Melhorar o algoritmo de filtragem dos resultados do YouTube
+- [ ] Melhorar ranking/seleção de músicas
+- [ ] Selecionar/desselecionar todas
+- [ ] Exibir progresso individual dos downloads
+- [ ] Exibir erros detalhados no frontend
+- [ ] Escolha da pasta de destino pelo usuário
+- [ ] Histórico de downloads
+- [ ] Tratamento de músicas duplicadas
+- [ ] Melhor gerenciamento de metadados MP3
+- [ ] Interface mais moderna
+- [ ] Chrome Extension
+- [ ] Empacotamento da aplicação para Windows
 
-Arquitetura planejada:
-
-```text
-┌──────────────────────┐
-│   Chrome Extension   │
-│                      │
-│  Botão "Baixar MP3"  │
-└──────────┬───────────┘
-           │ HTTP
-           ▼
-┌──────────────────────┐
-│   Python / FastAPI   │
-│                      │
-│ API local            │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│       yt-dlp         │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│       FFmpeg         │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│     Pasta local      │
-│      E:\Musicas      │
-└──────────────────────┘
-```
-
-A extensão ficaria responsável pela interface e pela captura da URL, enquanto o Python continuaria responsável pelo processamento local.
-
-## 🔐 Privacidade
-
-O projeto foi pensado para processamento local. As URLs são lidas pelo script no computador e os arquivos resultantes são salvos na pasta configurada pelo usuário.
-
-Este repositório não contém músicas, arquivos de áudio baixados, credenciais ou tokens de acesso.
-
-## 📄 Licença
-
-Este projeto pode ser licenciado e distribuído conforme a licença escolhida pelo mantenedor do repositório. Caso nenhuma licença tenha sido adicionada, o código permanece sem uma licença open source explícita.
+---
 
 ## 👨‍💻 Autor
 
@@ -289,6 +421,8 @@ Este projeto pode ser licenciado e distribuído conforme a licença escolhida pe
 
 GitHub: [@rob134](https://github.com/rob134)
 
+---
+
 ## ⭐ Projeto
 
-Se este projeto for útil para seus estudos de Python, automação, integração com ferramentas CLI e desenvolvimento de extensões Chrome, considere deixar uma estrela no repositório.
+Projeto desenvolvido para estudo prático de Python, APIs REST, automação, integração com ferramentas CLI, frontend web e evolução incremental de software.
