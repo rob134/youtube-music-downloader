@@ -46,21 +46,57 @@ async function loadSettings() {
 }
 
 async function searchSongs() {
-    const artist = artistInput.value.trim();
+    const query = artistInput.value.trim();
     const quantity = Number(quantityInput.value);
-    if (!artist) return alert("Digite o nome do artista ou banda.");
+    if (!query) return alert("Digite o nome da música, artista ou banda.");
     if (quantity < 1 || quantity > 50) return alert("A quantidade deve estar entre 1 e 50.");
     loading.classList.remove("hidden");
     searchButton.disabled = true;
-    status.textContent = "";
+    status.textContent = `Pesquisando no YouTube: ${query}...`;
     try {
-        const response = await fetch(`${API}/api/search`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ artist, quantity }) });
+        const response = await fetch(`${API}/api/search`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, quantity }) });
         const data = await response.json();
         if (!data.success) { status.textContent = "Erro: " + (data.error || "falha na pesquisa."); return; }
-        const added = addSongs(data.songs);
-        status.textContent = `${added} músicas adicionadas à fila.`;
+        renderSearchResults(data.songs || [], query);
+        status.textContent = `${(data.songs || []).length} resultado(s) encontrado(s). Selecione os que deseja adicionar à fila.`;
     } catch (error) { status.textContent = "Não foi possível conectar ao servidor. Verifique se o FastAPI está rodando."; console.error(error); }
     finally { loading.classList.add("hidden"); searchButton.disabled = false; }
+}
+
+function renderSearchResults(results, query) {
+    songList.innerHTML = "";
+    queueCount.textContent = `${songs.length} ${songs.length === 1 ? "música" : "músicas"} na fila`;
+    if (!results.length) {
+        songList.innerHTML = `<p>Nenhum resultado encontrado para "${escapeHtml(query)}".</p>`;
+        return;
+    }
+    const header = document.createElement("div");
+    header.className = "search-results-header";
+    header.innerHTML = `<strong>Resultados para: ${escapeHtml(query)}</strong><button id="addSearchSelected">➕ Adicionar selecionadas</button>`;
+    songList.appendChild(header);
+    const resultSongs = results.map(song => ({ ...song, selected: false }));
+    resultSongs.forEach(song => {
+        const element = document.createElement("div");
+        element.className = "song search-result";
+        const check = document.createElement("input");
+        check.type = "checkbox"; check.className = "song-check";
+        check.checked = false;
+        check.addEventListener("change", () => { song.selected = check.checked; });
+        const content = document.createElement("div"); content.className = "song-content";
+        const title = document.createElement("div"); title.className = "song-title"; title.textContent = song.title; content.appendChild(title);
+        element.append(check, content); songList.appendChild(element);
+    });
+    document.getElementById("addSearchSelected").addEventListener("click", () => {
+        const selected = resultSongs.filter(song => song.selected);
+        if (!selected.length) return alert("Selecione pelo menos um resultado.");
+        const added = addSongs(selected);
+        status.textContent = `${added} música(s) adicionada(s) à fila.`;
+        renderSongs();
+    });
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" }[char]));
 }
 
 async function importLinks() {
@@ -129,7 +165,6 @@ function addSongs(newSongs) {
     for (const song of newSongs) {
         if (!existing.has(song.url)) { songs.push({ ...song, selected: true }); existing.add(song.url); added++; }
     }
-    renderSongs();
     return added;
 }
 
